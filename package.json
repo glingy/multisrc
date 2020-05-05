@@ -3,7 +3,7 @@
 	"displayName": "multisrc",
 	"description": "Easily switch between multiple source directories in a project",
 	"publisher": "glingturtle",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"engines": {
 		"vscode": "^1.44.0"
 	},
