@@ -59,7 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function activateIfNeeded() {
-	if (vscode.workspace.workspaceFolders === null) {
+	if (!vscode.workspace.workspaceFolders) {
+		//myStatusBarItem.text = "No workspaces found!"
 		myStatusBarItem.hide()
 		return
 	}
@@ -68,7 +69,8 @@ function activateIfNeeded() {
 		fs.existsSync(folder.uri.fsPath + "/.multisrc")
 	);
 
-	if (workspace === null) {
+	if (!workspace) {
+		//myStatusBarItem.text = "No .multisrc found!"
 		myStatusBarItem.hide()
 		return
 	}
