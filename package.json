@@ -1,10 +1,9 @@
 {
-
 	"name": "multisrc",
 	"displayName": "multisrc",
 	"description": "Easily switch between multiple source directories in a project",
 	"publisher": "glingturtle",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"engines": {
 		"vscode": "^1.44.0"
 	},
@@ -12,14 +11,14 @@
 		"Other"
 	],
 	"activationEvents": [
-        "*"
+		"*"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "multisrc.helloWorld",
-                "title": "Hello World"
+				"title": "Hello World"
 			}
 		]
 	},
