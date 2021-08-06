@@ -2,6 +2,7 @@
 	"name": "multisrc",
 	"displayName": "multisrc",
 	"description": "Easily switch between multiple source directories in a project",
+	"repository": "https://github.com/glingy/multisrc",
 	"publisher": "glingturtle",
 	"version": "1.0.0",
 	"engines": {
