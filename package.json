@@ -21,22 +21,7 @@
 				"command": "multisrc.pickSourceFolder",
 				"title": "Pick Source Folder"
 			}
-		],
-		"configuration": {
-			"title": "Multi-Source",
-			"properties": {
-				"multisrc.sourcesFolder": {
-					"type": "string",
-					"default": "sources",
-					"description": "Folder relative to workspace directory which contains several source directories to switch between."
-				},
-				"multisrc.sourceLink": {
-					"type": "string",
-					"default": ".src",
-					"description": "Path relative to workspace directory to put the symbolic link. Use this in all build systems as the source directory."
-				}
-			}
-		}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",
