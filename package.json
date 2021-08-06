@@ -3,7 +3,7 @@
 	"displayName": "multisrc",
 	"description": "Easily switch between multiple source directories in a project",
 	"publisher": "glingturtle",
-	"version": "0.3.0",
+	"version": "1.0.0",
 	"engines": {
 		"vscode": "^1.44.0"
 	},
@@ -22,19 +22,19 @@
 			}
 		],
 		"configuration": {
-      "title": "Multi-Source",
-      "properties": {
-        "multisrc.sourcesFolder": {
-          "type": "string",
-          "default": "sources",
-          "description": "Folder relative to workspace directory which contains several source directories to switch between."
-        },
+			"title": "Multi-Source",
+			"properties": {
+				"multisrc.sourcesFolder": {
+					"type": "string",
+					"default": "sources",
+					"description": "Folder relative to workspace directory which contains several source directories to switch between."
+				},
 				"multisrc.sourceLink": {
-          "type": "string",
-          "default": ".src",
-          "description": "Path relative to workspace directory to put the symbolic link. Use this in all build systems as the source directory."
-        }
-      }
+					"type": "string",
+					"default": ".src",
+					"description": "Path relative to workspace directory to put the symbolic link. Use this in all build systems as the source directory."
+				}
+			}
 		}
 	},
 	"scripts": {
