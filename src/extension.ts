@@ -1,29 +1,36 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-let myStatusBarItem: vscode.StatusBarItem;
-const myCommandId = 'multisrc.helloWorld';
+const COMMAND_ID = 'multisrc.pickSourceFolder';
+
+let statusBarItem: vscode.StatusBarItem;
 var workspace: vscode.WorkspaceFolder
+
 var config = {
-	sources_dir: "sources",
-	src_dir: ".src"
+	sourcesFolder: "sources",
+	sourceLink: ".src"
 }
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
+async function pickSourceFolder() {
+	let folders = fs.readdirSync(path.join(workspace.uri.fsPath, config.sourcesFolder), { withFileTypes: true });
+	console.log(folders);
+	let options = folders.filter(folder => folder.isDirectory()).map(folder => folder.name);
+	console.log(options);
+
+	return await vscode.window.showQuickPick(
+		options,
+		{
+			placeHolder: 'Select a source folder to use:',
+		});
+}
+
 export function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-    myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    myStatusBarItem.command = myCommandId;
-    myStatusBarItem.tooltip = "Multi-Sourced Project"
-    
-    context.subscriptions.push(myStatusBarItem);
-	console.log("I'm HERE!")
+	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+	statusBarItem.command = COMMAND_ID;
+	statusBarItem.tooltip = "Multi-Sourced Project"
+	context.subscriptions.push(statusBarItem);
 
 	vscode.workspace.onDidChangeWorkspaceFolders(event => {
 		activateIfNeeded()
@@ -31,24 +38,22 @@ export function activate(context: vscode.ExtensionContext) {
 
 	activateIfNeeded()
 
-	context.subscriptions.push(vscode.commands.registerCommand('multisrc.helloWorld', async () => {
-		const result = await vscode.window.showQuickPick(
-			fs.readdirSync(workspace.uri.fsPath + "/" + config.sources_dir),
-			{
-				placeHolder: 'Select a source folder to use:',
-			});
+	context.subscriptions.push(vscode.commands.registerCommand(COMMAND_ID, async () => {
+		const result = await pickSourceFolder();
 
-		fs.unlink(workspace.uri.fsPath + "/" + config.src_dir, (err) => {
+		if (result === undefined) return;
+
+		fs.unlink(path.join(workspace.uri.fsPath, config.sourceLink), (err) => {
 			if (err && err.code !== "ENOENT") {
-				myStatusBarItem.text = "< Error! >";
+				statusBarItem.text = "< Error! >";
 				console.error(err)
 			} else {
-				fs.symlink("./" + config.sources_dir + "/" + result, workspace.uri.fsPath + "/" + config.src_dir, (err) => {
+				fs.symlink(path.join('.', config.sourcesFolder, result), path.join(workspace.uri.fsPath, config.sourceLink), (err) => {
 					if (err) {
-						myStatusBarItem.text = "< Error! >";
+						statusBarItem.text = "< Error! >";
 						console.error(err)
 					} else {
-						myStatusBarItem.text = `< ${result} >`
+						statusBarItem.text = `< ${result} >`
 					}
 					vscode.workspace.saveAll(false)
 					vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer") // workbench.action.reloadWindow
@@ -60,22 +65,20 @@ export function activate(context: vscode.ExtensionContext) {
 
 function activateIfNeeded() {
 	if (!vscode.workspace.workspaceFolders) {
-		//myStatusBarItem.text = "No workspaces found!"
-		myStatusBarItem.hide()
+		statusBarItem.hide()
 		return
 	}
 
 	workspace = vscode.workspace.workspaceFolders!.find(folder =>
-		fs.existsSync(folder.uri.fsPath + "/.multisrc")
+		fs.existsSync(path.join(folder.uri.fsPath, '.multisrc'))
 	);
 
 	if (!workspace) {
-		//myStatusBarItem.text = "No .multisrc found!"
-		myStatusBarItem.hide()
+		statusBarItem.hide()
 		return
 	}
 
-	fs.readFile(workspace.uri.fsPath + "/.multisrc", async (err, data) => {
+	fs.readFile(path.join(workspace.uri.fsPath, '.multisrc'), async (err, data) => {
 		if (err) {
 			console.warn(err)
 			return
@@ -87,18 +90,18 @@ function activateIfNeeded() {
 			vscode.window.showErrorMessage(error)
 		}
 
-		fs.readlink(workspace.uri.fsPath + "/" + config.src_dir, (err, data) => {
+		fs.readlink(path.join(workspace.uri.fsPath, config.sourceLink), (err, data) => {
 			if (err) {
-				myStatusBarItem.text = "< Error >";
+				statusBarItem.text = "< Error >";
 			} else {
-				myStatusBarItem.text = `< ${path.basename(data)} >`
+				statusBarItem.text = `< ${path.basename(data)} >`
 			}
-			myStatusBarItem.show();
+			statusBarItem.show();
 		})
 	})
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
-	myStatusBarItem.hide()
+	statusBarItem.hide()
 }
