@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
 				statusBarItem.text = "< Error! >";
 				console.error(err)
 			} else {
-				fs.symlink(path.join('.', config.sourcesFolder, result), path.join(workspace.uri.fsPath, config.sourceLink), (err) => {
+				fs.symlink(path.join('.', config.sourcesFolder, result), path.join(workspace.uri.fsPath, config.sourceLink), 'junction', (err) => {
 					if (err) {
 						statusBarItem.text = "< Error! >";
 						console.error(err)
@@ -92,7 +92,7 @@ function activateIfNeeded() {
 
 		fs.readlink(path.join(workspace.uri.fsPath, config.sourceLink), (err, data) => {
 			if (err) {
-				statusBarItem.text = "< Error >";
+				statusBarItem.text = "< Not Set >";
 			} else {
 				statusBarItem.text = `< ${path.basename(data)} >`
 			}
