@@ -5,9 +5,10 @@ import * as path from 'path';
 const COMMAND_ID = 'multisrc.pickSourceFolder';
 
 let statusBarItem: vscode.StatusBarItem;
-var workspace: vscode.WorkspaceFolder
+let workspace: vscode.WorkspaceFolder;
+let currentFolder: string;
 
-var config = {
+let config = {
 	sourcesFolder: "sources",
 	sourceLink: ".src"
 }
@@ -54,6 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
 						console.error(err)
 					} else {
 						statusBarItem.text = `< ${result} >`
+						currentFolder = path.join(workspace.uri.fsPath, config.sourcesFolder, result);
+						checkCurrentEditor();
 					}
 					vscode.workspace.saveAll(false)
 					vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer") // workbench.action.reloadWindow
@@ -61,6 +64,8 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		})
 	}));
+	checkCurrentEditor();
+	vscode.window.onDidChangeActiveTextEditor(checkCurrentEditor);
 }
 
 function activateIfNeeded() {
@@ -95,10 +100,18 @@ function activateIfNeeded() {
 				statusBarItem.text = "< Not Set >";
 			} else {
 				statusBarItem.text = `< ${path.basename(data)} >`
+				currentFolder = path.join(workspace.uri.fsPath, config.sourcesFolder, path.basename(data));
 			}
 			statusBarItem.show();
 		})
 	})
+}
+
+function checkCurrentEditor(editor?: vscode.TextEditor) {
+	editor = editor || vscode.window.activeTextEditor;
+	statusBarItem.backgroundColor = editor && editor.document && editor.document.uri.fsPath.startsWith(currentFolder) 
+		? undefined 
+		: new vscode.ThemeColor('statusBarItem.errorBackground');
 }
 
 // this method is called when your extension is deactivated
