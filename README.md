@@ -24,3 +24,32 @@ This extension is enabled by the presence of a `.multisrc` file in the workspace
 ```
 
 You can switch between source directories by the status bar item in the bottom right which also displays the current source folder or by the "Pick Source Folder" command.
+
+
+### Updated as of 22 Dec 2022
+
+Two configuration options were added:
+```
+{
+	"projectFileRegex": "",
+	"projectChangeCommand": ""
+}
+```
+If projectFileRegex is not blank, folders in sources will be recursively traversed to find the first folder which contains an entry whose filename matches projectFileRegex. This allows for nested project structures:
+```
+> sources
+  > group
+    > blinky
+      > main.c
+    > blinky2
+      > main.c
+  > test
+    > main.c
+  ...
+> .src -> sources/blinky
+> .multisrc
+```
+If projectFileRegex is blank, this will be taken as two projects, `group`, and `test`. If projectFileRegex is `"main\\.c"`, then this will be taken as three projects, `group/blinky`, `group/blinky2`, and `test`.
+
+
+`projectChangeCommand` can be set to a command ID for vscode to run when the project has been changed to reload any configuration required for the build setup.
