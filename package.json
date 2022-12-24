@@ -4,7 +4,7 @@
 	"description": "Easily switch between multiple source directories in a project",
 	"repository": "https://github.com/glingy/multisrc",
 	"publisher": "glingturtle",
-	"version": "1.3.3",
+	"version": "1.4.0",
 	"engines": {
 		"vscode": "^1.44.0"
 	},

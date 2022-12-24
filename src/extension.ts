@@ -12,17 +12,31 @@ let config = {
 	sourcesFolder: "sources",
 	sourceLink: ".src",
 	projectFileRegex: "",
-	projectChangeCommand: ""
+	projectChangeCommand: "",
+	configFilePath: "",
+	configFileTemplate: "",
 }
 
+async function getCurrentProject() {
+	try {
+		let linkPath = await fs.promises.readlink(path.join(workspace.uri.fsPath, config.sourceLink))
+		let absolutePath = path.resolve(path.dirname(path.join(workspace.uri.fsPath, config.sourceLink)), linkPath)
+		let projectPath = path.relative(path.join(workspace.uri.fsPath, config.sourcesFolder), absolutePath)
+		
+		return projectPath
+
+	} catch (err) {
+		return undefined
+	}
+}
 
 async function getProjectFolders() {
 	let root = path.join(workspace.uri.fsPath, config.sourcesFolder)
 	let folders = (await fs.promises.readdir(root, { withFileTypes: true }))
 		.filter(entry => entry.isDirectory())
-		.map(folder => folder.name);
+		.map(folder => folder.name)
 
-	if (config.projectFileRegex == "") return folders;
+	if (!config.projectFileRegex) return folders
 	
 	let projects = []
 
@@ -38,17 +52,25 @@ async function getProjectFolders() {
 		folders.push(...(entries.filter(entry => entry.isDirectory()).map(subfolder => path.join(folder, subfolder.name))))
 	}
 
-	return projects;
+	return projects.sort();
 }
 
 async function pickSourceFolder() {
-	let options = getProjectFolders();
+	let options = getProjectFolders()
 
 	return await vscode.window.showQuickPick(
 		options,
 		{
 			placeHolder: 'Select a source project to use:',
-		});
+		})
+}
+
+async function removeLink() {
+	let linkPath = path.join(workspace.uri.fsPath, config.sourceLink)
+	let stats = await fs.promises.lstat(linkPath)
+	if (stats.isSymbolicLink()) {
+		await fs.promises.unlink(linkPath)
+	}
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -56,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 	statusBarItem.command = COMMAND_ID;
 	statusBarItem.tooltip = "Multi-Sourced Project"
-	context.subscriptions.push(statusBarItem);
+	context.subscriptions.push(statusBarItem)
 
 	vscode.workspace.onDidChangeWorkspaceFolders(event => {
 		activateIfNeeded()
@@ -65,32 +87,34 @@ export function activate(context: vscode.ExtensionContext) {
 	activateIfNeeded()
 
 	context.subscriptions.push(vscode.commands.registerCommand(COMMAND_ID, async () => {
-		const result = await pickSourceFolder();
+		const result = await pickSourceFolder()
 
-		if (result === undefined) return;
+		if (result === undefined) return
 
 		try {
-			await fs.promises.unlink(path.join(workspace.uri.fsPath, config.sourceLink));
-			await fs.promises.symlink(path.join('.', config.sourcesFolder, result), path.join(workspace.uri.fsPath, config.sourceLink), 'junction');
-				
+			await removeLink()
+			await fs.promises.symlink(path.join(config.sourcesFolder, result), path.join(workspace.uri.fsPath, config.sourceLink), 'junction')
+			
+			if (config.configFilePath) {
+				await fs.promises.writeFile(path.resolve(workspace.uri.fsPath, config.configFilePath), config.configFileTemplate.replace(/\{project\}/g, path.join(config.sourcesFolder, result)))	
+			}
+
 			statusBarItem.text = `< ${result} >`
-			currentFolder = path.join(workspace.uri.fsPath, config.sourcesFolder, result);
-			checkCurrentEditor();
+			currentFolder = path.join(workspace.uri.fsPath, config.sourcesFolder, result)
+			checkCurrentEditor()
 			vscode.workspace.saveAll(false)
 			vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer") // workbench.action.reloadWindow
 			if (config.projectChangeCommand) vscode.commands.executeCommand(config.projectChangeCommand)
 		} catch (err) {
-			if (err.code !== "ENOENT") {
-				statusBarItem.text = "< Error! >";
-				console.error(err)
-			} 
+			statusBarItem.text = "< Error! >"
+			console.error(err)
 		}
 	}));
-	checkCurrentEditor();
-	vscode.window.onDidChangeActiveTextEditor(checkCurrentEditor);
+	checkCurrentEditor()
+	vscode.window.onDidChangeActiveTextEditor(checkCurrentEditor)
 }
 
-function activateIfNeeded() {
+async function activateIfNeeded() {
 	if (!vscode.workspace.workspaceFolders) {
 		statusBarItem.hide()
 		return
@@ -105,35 +129,36 @@ function activateIfNeeded() {
 		return
 	}
 
-	fs.readFile(path.join(workspace.uri.fsPath, '.multisrc'), async (err, data) => {
-		if (err) {
-			console.warn(err)
-			return
-		}
+	try {
+		let configData = await fs.promises.readFile(path.join(workspace.uri.fsPath, '.multisrc'))
 
 		try {
-			Object.assign(config, JSON.parse(data.toString()))
+			Object.assign(config, JSON.parse(configData.toString()))
 		} catch (error) {
 			vscode.window.showErrorMessage(error)
 		}
 
-		fs.readlink(path.join(workspace.uri.fsPath, config.sourceLink), (err, data) => {
-			if (err) {
-				statusBarItem.text = "< Not Set >";
-			} else {
-				statusBarItem.text = `< ${path.basename(data)} >`
-				currentFolder = path.join(workspace.uri.fsPath, config.sourcesFolder, path.basename(data));
+		let project = await getCurrentProject()
+		statusBarItem.text = `< ${project ?? 'Not Set'} >`
+		currentFolder = project ? path.join(workspace.uri.fsPath, config.sourcesFolder, project) : undefined
+		statusBarItem.show()
+
+		if (project) {
+			if (config.configFilePath) {
+				await fs.promises.writeFile(path.resolve(workspace.uri.fsPath, config.configFilePath), config.configFileTemplate.replace(/\{project\}/g, path.join(config.sourcesFolder, project)))
 			}
-			statusBarItem.show();
-		})
-	})
+		}
+
+	} catch (err) {
+		console.warn(err)
+	}
 }
 
 function checkCurrentEditor(editor?: vscode.TextEditor) {
 	editor = editor || vscode.window.activeTextEditor;
 	statusBarItem.backgroundColor = editor && editor.document && editor.document.uri.fsPath.startsWith(currentFolder) 
 		? undefined 
-		: new vscode.ThemeColor('statusBarItem.errorBackground');
+		: new vscode.ThemeColor('statusBarItem.errorBackground')
 }
 
 // this method is called when your extension is deactivated
